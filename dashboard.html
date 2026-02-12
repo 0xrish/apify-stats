@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apify Actor Market Intelligence</title>
+    <!-- Tailwind CSS (via CDN for standalone) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Load Data -->
+    <script src="data.js"></script> 
+    
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+        .accent-text { color: #38bdf8; }
+        .growth-pos { color: #4ade80; }
+        .growth-neg { color: #f87171; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body class="h-screen overflow-hidden flex flex-col">
+
+    <!-- Header -->
+    <header class="glass-panel m-4 p-4 flex justify-between items-center shrink-0 gap-6">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-xl">A</div>
+            <div>
+                <h1 class="text-xl font-bold text-white tracking-tight">Actor Intelligence</h1>
+                <p class="text-xs text-slate-400 leading-none">Market Analysis</p>
+            </div>
+        </div>
+
+        <!-- Header Search -->
+        <div class="flex-1 max-w-xl relative group">
+            <div class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-focus-within:text-blue-500 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </div>
+            <input type="text" id="searchInput" placeholder="Search by name, creator, description, or URI..." 
+                   class="w-full bg-slate-800/80 border border-slate-700/50 rounded-full py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-blue-500 focus:bg-slate-800 transition-all placeholder-slate-500 text-white shadow-inner">
+        </div>
+
+        <div class="flex gap-6 text-sm shrink-0">
+            <div class="text-right">
+                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest leading-none mb-1">Actors</p>
+                <p class="font-bold text-white text-lg" id="total-actors">0</p>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest leading-none mb-1">Market Cap</p>
+                <p class="font-bold text-green-400 text-lg" id="total-market-cap">$0M</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="flex flex-1 overflow-hidden px-4 pb-4 gap-4">
+        
+        <!-- Sidebar Controls -->
+        <aside class="w-72 glass-panel p-4 flex flex-col gap-6 shrink-0 overflow-y-auto">
+            
+            <!-- User Filtering -->
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-widest">Include Users</label>
+                    <input type="text" id="includeInput" placeholder="Whitelist (comma separated)" 
+                           class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm focus:outline-none focus:border-green-500 transition placeholder-slate-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-widest">Exclude Users</label>
+                    <input type="text" id="excludeInput" placeholder="Blacklist (comma separated)" 
+                           class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm focus:outline-none focus:border-red-500 transition placeholder-slate-600">
+                </div>
+            </div>
+
+            <!-- Categories -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-widest">Category</label>
+                <select id="categoryFilter" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
+                    <option value="ALL">All Categories</option>
+                    <!-- Populated by JS -->
+                </select>
+            </div>
+
+            <!-- Sort -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase">Sort By</label>
+                <select id="sortFilter" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm focus:outline-none focus:border-blue-500">
+                    <option value="estimated_profit">Est. Profit (High to Low)</option>
+                    <option value="estimated_revenue">Est. Revenue (High to Low)</option>
+                    <option value="users_30d">Active Users (30d)</option>
+                    <option value="growth_rate">Growth Rate (%)</option>
+                    <option value="totalUsers">Total Users (Life)</option>
+                    <option value="reviews">Review Count</option>
+                    <option value="rating">Rating (High to Low)</option>
+                </select>
+            </div>
+
+            <!-- Pricing Model -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase">Pricing Model</label>
+                <div class="flex flex-col gap-2">
+                    <label class="flex items-center gap-2 text-sm text-slate-300 hover:text-white cursor-pointer">
+                        <input type="checkbox" checked value="PAY_PER_EVENT" class="model-check accent-blue-500"> Pay Per Event
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-slate-300 hover:text-white cursor-pointer">
+                        <input type="checkbox" checked value="FLAT_PRICE_PER_MONTH" class="model-check accent-blue-500"> Monthly Sub
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-slate-300 hover:text-white cursor-pointer">
+                        <input type="checkbox" checked value="PRICE_PER_DATASET_ITEM" class="model-check accent-blue-500"> Per Item
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-slate-300 hover:text-white cursor-pointer">
+                        <input type="checkbox" checked value="FREE" class="model-check accent-blue-500"> Free
+                    </label>
+                </div>
+            </div>
+
+            <!-- Advanced Numeric Filters -->
+            <div class="space-y-4 pt-4 border-t border-slate-700">
+                
+                <!-- Rating Filter -->
+                <div>
+                    <label class="flex justify-between text-xs font-semibold text-slate-400 mb-2 uppercase">
+                        <span>Min Rating</span>
+                        <span id="ratingVal" class="text-blue-400">0</span>
+                    </label>
+                    <input type="range" id="minRating" min="0" max="5" step="0.1" value="0" class="w-full accent-blue-500 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <!-- Min Runs Filter -->
+                <div>
+                    <label class="flex justify-between text-xs font-semibold text-slate-400 mb-2 uppercase">
+                        <span>Min Runs (30d)</span>
+                        <span id="runsVal" class="text-blue-400">0</span>
+                    </label>
+                    <input type="range" id="minRuns" min="0" max="10000" step="100" value="0" class="w-full accent-blue-500 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                 <!-- Min Profit Filter -->
+                 <div>
+                    <label class="flex justify-between text-xs font-semibold text-slate-400 mb-2 uppercase">
+                        <span>Min Monthly Profit</span>
+                        <span id="profitVal" class="text-green-400">$0</span>
+                    </label>
+                    <input type="range" id="minProfit" min="0" max="1000" step="10" value="0" class="w-full accent-green-500 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+
+            <div class="mt-auto pt-4 border-t border-slate-700 text-xs text-center text-slate-500">
+                Showing <span id="visibleCount" class="text-white font-bold">0</span> results
+            </div>
+            
+            <button id="resetBtn" class="w-full py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm transition font-semibold text-white">Reset Filters</button>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col gap-4 overflow-hidden">
+            
+            <!-- Charts Row -->
+            <div class="h-48 glass-panel p-4 flex gap-4 shrink-0">
+                <div class="flex-1 relative">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+                <div class="flex-1 border-l border-slate-700 pl-4 relative">
+                    <div class="absolute top-0 right-0 p-2 text-xs bg-slate-800 rounded">Top 5 Revenue</div>
+                    <canvas id="topRevenueChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Data Grid header -->
+            <div class="bg-slate-800 rounded-t-lg px-4 py-3 grid grid-cols-12 gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0 border-b border-slate-700">
+                <div class="col-span-1"># Rank</div>
+                <div class="col-span-3">Actor / Creator</div>
+                <div class="col-span-1 text-right">Revenue</div>
+                <div class="col-span-1 text-right">Profit</div>
+                <div class="col-span-1 text-center">1w</div>
+                <div class="col-span-1 text-center">1m</div>
+                <div class="col-span-1 text-center">3m</div>
+                <div class="col-span-2 text-right">Lifetime</div>
+                <div class="col-span-1 text-center">Plan</div>
+            </div>
+
+            <!-- Scrollable List -->
+            <div id="actorsList" class="flex-1 overflow-y-auto bg-slate-900/50 rounded-b-lg p-2 space-y-1">
+                <!-- Items injected here -->
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Details Modal -->
+    <dialog id="detailsModal" class="bg-slate-900 text-white p-6 rounded-xl border border-slate-700 w-full max-w-2xl backdrop:bg-black/50 backdrop:backdrop-blur-sm">
+        <form method="dialog">
+            <button class="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+        </form>
+        <div id="modalContent"></div>
+    </dialog>
+
+    <script>
+        // === STATE ===
+        let allData = window.ACTOR_DATA || [];
+        let filteredData = [...allData];
+        let charts = {};
+        let renderTimer = null;
+        let currentLimit = 150;
+
+        // === DOM ELEMENTS ===
+        const listEl = document.getElementById('actorsList');
+        const searchInput = document.getElementById('searchInput');
+        const includeInput = document.getElementById('includeInput');
+        const excludeInput = document.getElementById('excludeInput');
+        const categoryFilter = document.getElementById('categoryFilter');
+        const sortFilter = document.getElementById('sortFilter');
+        const modelChecks = document.querySelectorAll('.model-check');
+        const totalActorsEl = document.getElementById('total-actors');
+        const totalMarketCapEl = document.getElementById('total-market-cap');
+        
+        const minRating = document.getElementById('minRating');
+        const minRuns = document.getElementById('minRuns');
+        const minProfit = document.getElementById('minProfit');
+        const ratingVal = document.getElementById('ratingVal');
+        const runsVal = document.getElementById('runsVal');
+        const profitVal = document.getElementById('profitVal');
+        const visibleCount = document.getElementById('visibleCount');
+
+        // === INITIALIZATION ===
+        function init() {
+            populateCategories();
+            handleFilter(); 
+            
+            const debounceFilter = () => {
+                clearTimeout(renderTimer);
+                renderTimer = setTimeout(handleFilter, 150);
+            };
+
+            searchInput.addEventListener('input', debounceFilter);
+            includeInput.addEventListener('input', debounceFilter);
+            excludeInput.addEventListener('input', debounceFilter);
+            categoryFilter.addEventListener('change', handleFilter);
+            sortFilter.addEventListener('change', handleSort);
+            modelChecks.forEach(cb => cb.addEventListener('change', handleFilter));
+            
+            minRating.addEventListener('input', (e) => { ratingVal.textContent = e.target.value; debounceFilter(); });
+            minRuns.addEventListener('input', (e) => { runsVal.textContent = parseInt(e.target.value).toLocaleString(); debounceFilter(); });
+            minProfit.addEventListener('input', (e) => { profitVal.textContent = '$' + e.target.value; debounceFilter(); });
+
+            document.getElementById('resetBtn').addEventListener('click', resetFilters);
+
+            // Infinite Scroll Listener
+            listEl.addEventListener('scroll', () => {
+                if (listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 100) {
+                    if (currentLimit < filteredData.length) {
+                        currentLimit += 150;
+                        render(true); // render more items
+                    }
+                }
+            });
+        }
+
+        function populateCategories() {
+            const cats = new Set();
+            allData.forEach(a => a.categories.forEach(c => cats.add(c)));
+            Array.from(cats).sort().forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c.replace(/_/g, ' ');
+                categoryFilter.appendChild(opt);
+            });
+        }
+
+        function handleFilter() {
+            const query = searchInput.value.toLowerCase().trim();
+            const includeQuery = includeInput.value.toLowerCase().trim();
+            const excludeQuery = excludeInput.value.toLowerCase().trim();
+            const includes = includeQuery ? includeQuery.split(',').map(s => s.trim()) : [];
+            const excludes = excludeQuery ? excludeQuery.split(',').map(s => s.trim()) : [];
+            const cat = categoryFilter.value;
+            const activeModels = new Set(Array.from(modelChecks).filter(c => c.checked).map(c => c.value));
+            const rMin = parseFloat(minRating.value);
+            const runMin = parseFloat(minRuns.value);
+            const pMin = parseFloat(minProfit.value);
+
+            filteredData = allData.filter(item => {
+                if (!activeModels.has(item.pricingModel)) return false;
+                if (item.rating < rMin || item.runs_30d < runMin || item.estimated_profit < pMin) return false;
+                const user = (item.username || '').toLowerCase();
+                if (excludes.length > 0 && excludes.some(ex => user.includes(ex))) return false;
+                if (includes.length > 0 && !includes.some(inc => user.includes(inc))) return false;
+                if (cat !== 'ALL' && !item.categories.includes(cat)) return false;
+                if (query) {
+                    return item.title.toLowerCase().includes(query) || 
+                           item.name.toLowerCase().includes(query) || 
+                           user.includes(query) ||
+                           (item.description && item.description.toLowerCase().includes(query));
+                }
+                return true;
+            });
+            
+            visibleCount.textContent = filteredData.length.toLocaleString();
+            currentLimit = 150; // Reset scroll limit
+            handleSort(); 
+        }
+
+        function handleSort() {
+            const sortKey = sortFilter.value;
+            filteredData.sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
+            render();
+            updateCharts();
+        }
+
+        function resetFilters() {
+            searchInput.value = ''; includeInput.value = ''; excludeInput.value = '';
+            categoryFilter.value = 'ALL'; sortFilter.value = 'estimated_profit';
+            modelChecks.forEach(c => c.checked = true);
+            minRating.value = 0; ratingVal.textContent = '0';
+            minRuns.value = 0; runsVal.textContent = '0';
+            minProfit.value = 0; profitVal.textContent = '$0';
+            handleFilter();
+        }
+
+        function formatCurrency(num) {
+            if (num >= 1000000) return '$' + (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return '$' + (num / 1000).toFixed(1) + 'k';
+            return '$' + (num || 0).toFixed(0);
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+            return (num || 0).toLocaleString();
+        }
+
+        function render(append = false) {
+            totalActorsEl.textContent = filteredData.length.toLocaleString();
+            const totalRev = filteredData.reduce((sum, item) => sum + item.estimated_revenue, 0);
+            totalMarketCapEl.textContent = formatCurrency(totalRev);
+
+            if (!append) {
+                listEl.innerHTML = '';
+                listEl.scrollTop = 0;
+            } else {
+                // Remove the "Scroll for more" label if appending
+                const label = listEl.querySelector('.scroll-label');
+                if (label) label.remove();
+            }
+            
+            const start = append ? currentLimit - 150 : 0;
+            const itemsToShow = filteredData.slice(start, currentLimit);
+            const fragment = document.createDocumentFragment();
+
+            itemsToShow.forEach((item, i) => {
+                const div = document.createElement('div');
+                div.className = 'grid grid-cols-12 gap-4 p-3 bg-slate-800/40 hover:bg-slate-700/60 rounded transition items-center border border-slate-800 hover:border-slate-600 cursor-pointer';
+                div.onclick = () => showDetails(item);
+
+                const stats = item.stats || {};
+                const pricingTag = item.pricingModel === 'FREE' ? 'text-slate-500' : 'text-blue-400 font-bold';
+                const rank = start + i + 1;
+
+                div.innerHTML = `
+                    <div class="col-span-1 font-mono text-[11px] text-slate-500 flex items-center">
+                        <span class="bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800">#${rank}</span>
+                    </div>
+                    <div class="col-span-3 flex items-center gap-3 overflow-hidden">
+                        <img src="${item.pictureUrl}" class="w-9 h-9 rounded bg-slate-700 object-cover shrink-0 border border-slate-600">
+                        <div class="overflow-hidden">
+                            <h3 class="font-bold text-sm text-white truncate">${item.title}</h3>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <span class="text-[10px] text-slate-500 font-mono">@${item.username}</span>
+                                <span class="text-[9px] text-amber-500/80 font-bold uppercase tracking-tighter">${item.priceSummary}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-span-1 text-right font-mono text-[11px] text-slate-300 font-bold">${formatCurrency(item.estimated_revenue)}</div>
+                    <div class="col-span-1 text-right font-mono text-[11px] text-green-400 font-bold">${formatCurrency(item.estimated_profit)}</div>
+                    
+                    <div class="col-span-1 text-center font-mono text-[11px] text-slate-400">${(item.users_7d || 0).toLocaleString()}</div>
+                    <div class="col-span-1 text-center font-mono text-[11px] text-slate-200">${(item.users_30d || 0).toLocaleString()}</div>
+                    <div class="col-span-1 text-center font-mono text-[11px] text-slate-400">${(item.users_90d || 0).toLocaleString()}</div>
+                    
+                    <div class="col-span-2 text-right">
+                        <div class="text-[11px] text-slate-100 font-bold font-mono">${(stats.totalUsers || 0).toLocaleString()}</div>
+                        <div class="text-[9px] text-slate-500 uppercase tracking-tighter">Runs: ${formatNumber(stats.totalRuns)}</div>
+                    </div>
+                    
+                    <div class="col-span-1 text-center">
+                        <span class="text-[9px] px-1.5 py-0.5 rounded border border-slate-700 bg-slate-900/50 ${pricingTag}">${item.pricingModel.split('_')[0]}</span>
+                    </div>
+                `;
+                fragment.appendChild(div);
+            });
+
+            listEl.appendChild(fragment);
+
+            if (filteredData.length > currentLimit) {
+                const more = document.createElement('div');
+                more.className = 'scroll-label text-center text-[10px] text-slate-600 py-4 uppercase tracking-widest';
+                more.textContent = `↓ Scroll to load ${filteredData.length - currentLimit} more items`;
+                listEl.appendChild(more);
+            }
+        }
+
+        function updateCharts() {
+            const catStats = {};
+            for (let i = 0; i < filteredData.slice(0, 1000).length; i++) { // Sample top 1000 for chart speed
+                const d = filteredData[i];
+                d.categories.forEach(c => catStats[c] = (catStats[c] || 0) + d.estimated_revenue);
+            }
+            const topCats = Object.entries(catStats).sort((a,b) => b[1] - a[1]).slice(0, 5);
+            const ctx1 = document.getElementById('categoryChart').getContext('2d');
+            if (charts.cat) charts.cat.destroy();
+            charts.cat = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: topCats.map(x => x[0].replace(/_/g, ' ')),
+                    datasets: [{
+                        data: topCats.map(x => x[1]),
+                        backgroundColor: 'rgba(56, 189, 248, 0.4)', borderColor: '#38bdf8', borderWidth: 1, borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        y: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { font: { size: 9 }, color: '#64748b' } },
+                        x: { grid: { display: false }, ticks: { font: { size: 9 }, color: '#64748b' } }
+                    }
+                }
+            });
+
+            const topActors = filteredData.slice(0, 5);
+            const ctx2 = document.getElementById('topRevenueChart').getContext('2d');
+            if (charts.rev) charts.rev.destroy();
+            charts.rev = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: topActors.map(x => x.title.substring(0, 15)),
+                    datasets: [{
+                        data: topActors.map(x => x.estimated_revenue),
+                        backgroundColor: ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'],
+                        borderWidth: 0, hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '75%',
+                    plugins: { legend: { position: 'right', labels: { color: '#94a3b8', boxWidth: 8, font: { size: 9 } } } }
+                }
+            });
+        }
+
+        function showDetails(item) {
+            const modal = document.getElementById('detailsModal');
+            const content = document.getElementById('modalContent');
+            const stats = item.stats || {};
+            
+            // Extract original fields that aren't specific calculated ones
+            const calculatedFields = ['runs_30d', 'users_7d', 'users_30d', 'users_90d', 'growth_rate', 'estimated_revenue', 'estimated_profit', 'rating', 'reviews', 'priceSummary'];
+            const rawInfo = {};
+            Object.keys(item).forEach(key => {
+                if (!calculatedFields.includes(key)) rawInfo[key] = item[key];
+            });
+
+            content.innerHTML = `
+                <div class="flex gap-4 mb-4">
+                    <img src="${item.pictureUrl}" class="w-16 h-16 rounded-xl bg-slate-800 border border-slate-700">
+                    <div class="overflow-hidden">
+                        <h2 class="text-xl font-bold truncate">${item.title}</h2>
+                        <div class="flex items-center gap-2 mt-1">
+                            <a href="https://apify.com/${item.username}/${item.name}" target="_blank" class="text-blue-400 hover:underline text-sm font-mono">@${item.username}/${item.name}</a>
+                            <span class="text-[10px] bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded border border-amber-500/30 font-bold uppercase">${item.priceSummary}</span>
+                        </div>
+                        <div class="flex gap-2 mt-2 flex-wrap">
+                            ${(item.categories || []).map(c => `<span class="bg-slate-800 px-2 py-0.5 rounded text-[10px] text-slate-400 border border-slate-700">${c}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-slate-800/80 p-3 rounded-lg text-center border border-slate-700">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Estimated Monthly Profit</div>
+                        <div class="text-2xl font-bold text-green-400">${formatCurrency(item.estimated_profit)}</div>
+                        <div class="text-xs text-slate-500">Gross Rev: ${formatCurrency(item.estimated_revenue)}</div>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-lg text-center border border-slate-700">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Growth Speed (30d)</div>
+                        <div class="text-2xl font-bold text-white">${item.growth_rate >= 0 ? '+' : ''}${item.growth_rate}%</div>
+                        <div class="text-xs text-slate-500">Velocity: ~${Math.round(item.users_7d / 7)} users/day</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-2 mb-6">
+                    <div class="bg-slate-900/50 p-2 rounded border border-slate-800 text-center">
+                        <div class="text-[9px] text-slate-500 uppercase">1 Week</div>
+                        <div class="text-sm font-bold text-slate-300">${(item.users_7d || 0).toLocaleString()}</div>
+                    </div>
+                    <div class="bg-slate-900/50 p-2 rounded border border-slate-800 text-center">
+                        <div class="text-[9px] text-slate-500 uppercase">1 Month</div>
+                        <div class="text-sm font-bold text-white">${(item.users_30d || 0).toLocaleString()}</div>
+                    </div>
+                    <div class="bg-slate-900/50 p-2 rounded border border-slate-800 text-center">
+                        <div class="text-[9px] text-slate-500 uppercase">3 Months</div>
+                        <div class="text-sm font-bold text-slate-300">${(item.users_90d || 0).toLocaleString()}</div>
+                    </div>
+                    <div class="bg-slate-900/50 p-2 rounded border border-slate-800 text-center">
+                        <div class="text-[9px] text-blue-500 uppercase font-bold">Total Users</div>
+                        <div class="text-sm font-bold text-blue-400">${(stats.totalUsers || 0).toLocaleString()}</div>
+                    </div>
+                </div>
+
+                <div class="space-y-2 text-sm text-slate-300 bg-slate-800/20 p-4 rounded-lg border border-slate-700 mb-4">
+                    <div class="flex justify-between border-b border-slate-700/50 pb-2">
+                        <span class="text-slate-500">Pricing Model</span>
+                        <span class="font-bold text-slate-200">${item.pricingModel.replace(/_/g, ' ')}</span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-700/50 pb-2 pt-2">
+                        <span class="text-slate-500">Total Runs (30d)</span>
+                        <span class="font-bold text-slate-200 font-mono">${(stats.publicActorRunStats30Days?.TOTAL || 0).toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between border-b border-slate-700/50 pb-2 pt-2">
+                        <span class="text-slate-500">User Rating</span>
+                        <span class="font-bold text-yellow-500">★ ${item.rating.toFixed(2)} (${item.reviews} reviews)</span>
+                    </div>
+                    <div class="flex justify-between pt-2">
+                        <span class="text-slate-500">Lifetime Runs</span>
+                        <span class="font-bold text-slate-200 font-mono">${(stats.totalRuns || 0).toLocaleString()}</span>
+                    </div>
+                </div>
+
+                <details class="group">
+                    <summary class="text-xs font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-white transition py-2 border-t border-slate-800 flex items-center justify-between">
+                        <span>Original Data (Plan & Pricing)</span>
+                        <span class="text-[10px] group-open:rotate-180 transition-transform">▼</span>
+                    </summary>
+                    <pre class="text-[10px] font-mono text-slate-400 bg-black/60 p-4 rounded mt-2 overflow-auto max-h-60 leading-tight border border-slate-800 select-all">${JSON.stringify(rawInfo, null, 2)}</pre>
+                </details>
+            `;
+            modal.showModal();
+        }
+
+        // Run
+        init();
+    </script>
+</body>
+</html>
