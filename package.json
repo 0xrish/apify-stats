@@ -1,0 +1,10 @@
+{
+    "name": "apify-market-intelligence",
+    "version": "1.0.0",
+    "description": "Crawler and analyzer for Apify Store actors",
+    "main": "fetch_actors.js",
+    "dependencies": {
+        "@apify/client": "^2.9.0"
+    },
+    "type": "module"
+}
