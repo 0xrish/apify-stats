@@ -27,6 +27,11 @@
         ::-webkit-scrollbar-track { background: #1e293b; }
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .tab-btn { color: #94a3b8; }
+        .tab-btn:hover { color: #f8fafc; background: rgba(255,255,255,0.05); }
+        .tab-btn.active { color: #38bdf8; background: rgba(56, 189, 248, 0.15); box-shadow: 0 0 15px rgba(56, 189, 248, 0.1); }
+        .view-section { display: none; }
+        .view-section.active { display: flex; }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col">
@@ -41,7 +46,6 @@
             </div>
         </div>
 
-        <!-- Header Search -->
         <div class="flex-1 max-w-xl relative group">
             <div class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-focus-within:text-blue-500 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -49,6 +53,12 @@
             <input type="text" id="searchInput" placeholder="Search by name, creator, description, or URI..." 
                    class="w-full bg-slate-800/80 border border-slate-700/50 rounded-full py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-blue-500 focus:bg-slate-800 transition-all placeholder-slate-500 text-white shadow-inner">
         </div>
+
+        <nav class="flex items-center bg-slate-800/50 p-1 rounded-lg border border-slate-700/50">
+            <button onclick="switchTab('explorer')" class="tab-btn active px-4 py-1.5 rounded-md text-sm font-semibold transition-all">Explorer</button>
+            <button onclick="switchTab('analytics')" class="tab-btn px-4 py-1.5 rounded-md text-sm font-semibold transition-all">Analytics</button>
+            <button onclick="switchTab('leaderboard')" class="tab-btn px-4 py-1.5 rounded-md text-sm font-semibold transition-all">Developers</button>
+        </nav>
 
         <div class="flex gap-6 text-sm shrink-0">
             <div class="text-right">
@@ -155,44 +165,95 @@
                 </div>
             </div>
 
-            <div class="mt-auto pt-4 border-t border-slate-700 text-xs text-center text-slate-500">
-                Showing <span id="visibleCount" class="text-white font-bold">0</span> results
+            <div class="flex flex-col gap-2 mt-auto pt-4 border-t border-slate-700">
+                <div class="text-xs text-center text-slate-500 mb-2">
+                    Showing <span id="visibleCount" class="text-white font-bold">0</span> results
+                </div>
+                <button id="exportBtn" onclick="exportToCSV()" class="w-full py-2 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 rounded text-sm transition font-semibold text-blue-400 mb-2">Export CSV</button>
+                <button id="resetBtn" class="w-full py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm transition font-semibold text-white">Reset Filters</button>
             </div>
-            
-            <button id="resetBtn" class="w-full py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm transition font-semibold text-white">Reset Filters</button>
         </aside>
 
         <!-- Main Content Area -->
-        <main class="flex-1 flex flex-col gap-4 overflow-hidden">
+        <main class="flex-1 flex flex-col gap-4 overflow-hidden relative">
             
-            <!-- Charts Row -->
-            <div class="h-48 glass-panel p-4 flex gap-4 shrink-0">
-                <div class="flex-1 relative">
-                    <canvas id="categoryChart"></canvas>
+            <!-- View 1: Explorer (Existing functionality) -->
+            <section id="view-explorer" class="view-section active flex-col h-full gap-4 overflow-hidden">
+                <!-- Charts Row -->
+                <div class="h-48 glass-panel p-4 flex gap-4 shrink-0">
+                    <div class="flex-1 relative">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                    <div class="flex-1 border-l border-slate-700 pl-4 relative">
+                        <div class="absolute top-0 right-0 p-1.5 text-[10px] bg-slate-800 rounded uppercase font-bold text-slate-500 tracking-wider border border-slate-700">Top 5 Revenue</div>
+                        <canvas id="topRevenueChart"></canvas>
+                    </div>
                 </div>
-                <div class="flex-1 border-l border-slate-700 pl-4 relative">
-                    <div class="absolute top-0 right-0 p-2 text-xs bg-slate-800 rounded">Top 5 Revenue</div>
-                    <canvas id="topRevenueChart"></canvas>
+
+                <!-- Data Grid header -->
+                <div class="bg-slate-800 rounded-t-lg px-4 py-3 grid grid-cols-12 gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0 border-b border-slate-700">
+                    <div class="col-span-1"># Rank</div>
+                    <div class="col-span-3">Actor / Creator</div>
+                    <div class="col-span-1 text-right">Revenue</div>
+                    <div class="col-span-1 text-right">Profit</div>
+                    <div class="col-span-1 text-center">1w</div>
+                    <div class="col-span-1 text-center">1m</div>
+                    <div class="col-span-1 text-center">3m</div>
+                    <div class="col-span-2 text-right">Lifetime</div>
+                    <div class="col-span-1 text-center">Plan</div>
                 </div>
-            </div>
 
-            <!-- Data Grid header -->
-            <div class="bg-slate-800 rounded-t-lg px-4 py-3 grid grid-cols-12 gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0 border-b border-slate-700">
-                <div class="col-span-1"># Rank</div>
-                <div class="col-span-3">Actor / Creator</div>
-                <div class="col-span-1 text-right">Revenue</div>
-                <div class="col-span-1 text-right">Profit</div>
-                <div class="col-span-1 text-center">1w</div>
-                <div class="col-span-1 text-center">1m</div>
-                <div class="col-span-1 text-center">3m</div>
-                <div class="col-span-2 text-right">Lifetime</div>
-                <div class="col-span-1 text-center">Plan</div>
-            </div>
+                <!-- Scrollable List -->
+                <div id="actorsList" class="flex-1 overflow-y-auto bg-slate-900/50 rounded-b-lg p-2 space-y-1 scroll-container">
+                    <!-- Items injected here -->
+                </div>
+            </section>
 
-            <!-- Scrollable List -->
-            <div id="actorsList" class="flex-1 overflow-y-auto bg-slate-900/50 rounded-b-lg p-2 space-y-1">
-                <!-- Items injected here -->
-            </div>
+            <!-- View 2: Analytics (Deeper Analysis) -->
+            <section id="view-analytics" class="view-section flex-col h-full gap-6 overflow-y-auto p-2">
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="glass-panel p-6 h-80">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Market Share by Category (Revenue)</h3>
+                        <div class="h-64"><canvas id="marketShareChart"></canvas></div>
+                    </div>
+                    <div class="glass-panel p-6 h-80">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Pricing Model Distribution</h3>
+                        <div class="h-64"><canvas id="pricingDistChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="glass-panel p-6 bg-blue-500/5 border-blue-500/20">
+                        <p class="text-xs text-slate-500 uppercase font-bold tracking-widest mb-1">Avg Rating</p>
+                        <h2 id="avg-rating" class="text-3xl font-bold text-white">0.00</h2>
+                        <p class="text-[10px] text-slate-600 mt-1">Across all actors</p>
+                    </div>
+                    <div class="glass-panel p-6 bg-green-500/5 border-green-500/20">
+                        <p class="text-xs text-slate-500 uppercase font-bold tracking-widest mb-1">Total Runs (30d)</p>
+                        <h2 id="total-runs" class="text-3xl font-bold text-white">0.00</h2>
+                        <p class="text-[10px] text-slate-600 mt-1">Aggregated platform volume</p>
+                    </div>
+                    <div class="glass-panel p-6 bg-amber-500/5 border-amber-500/20">
+                        <p class="text-xs text-slate-500 uppercase font-bold tracking-widest mb-1">Paid Ratio</p>
+                        <h2 id="paid-ratio" class="text-3xl font-bold text-white">0%</h2>
+                        <p class="text-[10px] text-slate-600 mt-1">Percent of paid actors</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View 3: Leaderboard (Creator Leaders) -->
+            <section id="view-leaderboard" class="view-section flex-col h-full gap-4 overflow-hidden">
+                <div class="bg-slate-800 rounded-t-lg px-6 py-4 grid grid-cols-12 gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0 border-b border-slate-700">
+                    <div class="col-span-1">Rank</div>
+                    <div class="col-span-3">Developer / Company</div>
+                    <div class="col-span-2 text-right">Total Revenue</div>
+                    <div class="col-span-2 text-right">Total Profit</div>
+                    <div class="col-span-2 text-center">Actor Count</div>
+                    <div class="col-span-2 text-right">Avg Rating</div>
+                </div>
+                <div id="leaderboardList" class="flex-1 overflow-y-auto bg-slate-900/50 rounded-b-lg p-2 space-y-1">
+                    <!-- Developers injected here -->
+                </div>
+            </section>
 
         </main>
     </div>
@@ -209,9 +270,24 @@
         // === STATE ===
         let allData = window.ACTOR_DATA || [];
         let filteredData = [...allData];
+        let developerData = [];
+        let activeTab = 'explorer';
         let charts = {};
         let renderTimer = null;
         let currentLimit = 150;
+
+        function switchTab(tabId) {
+            activeTab = tabId;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('onclick').includes(tabId));
+            });
+            document.querySelectorAll('.view-section').forEach(view => {
+                view.classList.toggle('active', view.id === `view-${tabId}`);
+            });
+            
+            if (tabId === 'analytics') updateAnalyticsView();
+            if (tabId === 'leaderboard') renderLeaderboard();
+        }
 
         // === DOM ELEMENTS ===
         const listEl = document.getElementById('actorsList');
@@ -313,7 +389,11 @@
         function handleSort() {
             const sortKey = sortFilter.value;
             filteredData.sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
-            render();
+            
+            if (activeTab === 'explorer') render();
+            else if (activeTab === 'analytics') updateAnalyticsView();
+            else if (activeTab === 'leaderboard') renderLeaderboard();
+            
             updateCharts();
         }
 
@@ -337,6 +417,34 @@
             if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
             if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
             return (num || 0).toLocaleString();
+        }
+
+        function exportToCSV() {
+            if (filteredData.length === 0) return alert('No data to export');
+            
+            const headers = ['Rank', 'Title', 'Developer', 'Revenue', 'Profit', 'Users_30d', 'Runs_30d', 'Rating', 'URL'];
+            const rows = filteredData.map((item, index) => [
+                index + 1,
+                item.title.replace(/,/g, ''),
+                item.username,
+                item.estimated_revenue.toFixed(2),
+                item.estimated_profit.toFixed(2),
+                item.users_30d,
+                item.runs_30d,
+                item.rating,
+                `https://apify.com/${item.username}/${item.name}`
+            ]);
+
+            const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `apify_market_analysis_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         function render(append = false) {
@@ -365,19 +473,22 @@
                 const stats = item.stats || {};
                 const pricingTag = item.pricingModel === 'FREE' ? 'text-slate-500' : 'text-blue-400 font-bold';
                 const rank = start + i + 1;
+                const description = item.description ? item.description.substring(0, 80) + (item.description.length > 80 ? '...' : '') : 'No description available';
+                const agenticBadge = item.isWhiteListedForAgenticPayments ? `<span class="text-[8px] bg-green-500/20 text-green-400 px-1 rounded border border-green-500/20 font-bold ml-1">AGENTIC</span>` : '';
 
                 div.innerHTML = `
                     <div class="col-span-1 font-mono text-[11px] text-slate-500 flex items-center">
                         <span class="bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800">#${rank}</span>
                     </div>
                     <div class="col-span-3 flex items-center gap-3 overflow-hidden">
-                        <img src="${item.pictureUrl}" class="w-9 h-9 rounded bg-slate-700 object-cover shrink-0 border border-slate-600">
+                        <img src="${item.pictureUrl}" class="w-10 h-10 rounded bg-slate-700 object-cover shrink-0 border border-slate-600">
                         <div class="overflow-hidden">
                             <h3 class="font-bold text-sm text-white truncate">${item.title}</h3>
                             <div class="flex items-center gap-1.5 mt-0.5">
-                                <span class="text-[10px] text-slate-500 font-mono">@${item.username}</span>
+                                <span class="text-[10px] text-slate-500 font-mono">@${item.username}${agenticBadge}</span>
                                 <span class="text-[9px] text-amber-500/80 font-bold uppercase tracking-tighter">${item.priceSummary}</span>
                             </div>
+                            <p class="text-[10px] text-slate-500 truncate mt-0.5">${description}</p>
                         </div>
                     </div>
                     
@@ -458,91 +569,290 @@
             });
         }
 
+        function updateAnalyticsView() {
+            // Stats Calculations
+            const totalRating = filteredData.reduce((sum, item) => sum + (item.rating || 0), 0);
+            const avgRating = filteredData.length > 0 ? (totalRating / filteredData.length).toFixed(2) : "0.00";
+            document.getElementById('avg-rating').textContent = avgRating;
+
+            const totalRuns = filteredData.reduce((sum, item) => sum + (item.runs_30d || 0), 0);
+            document.getElementById('total-runs').textContent = formatNumber(totalRuns);
+
+            const paidCount = filteredData.filter(item => item.pricingModel !== 'FREE').length;
+            const paidRatio = filteredData.length > 0 ? Math.round((paidCount / filteredData.length) * 100) : 0;
+            document.getElementById('paid-ratio').textContent = `${paidRatio}%`;
+
+            // Market Share Chart
+            const catStats = {};
+            filteredData.forEach(d => {
+                const primaryCat = d.categories[0] || 'Unknown';
+                catStats[primaryCat] = (catStats[primaryCat] || 0) + d.estimated_revenue;
+            });
+            const shareData = Object.entries(catStats).sort((a,b) => b[1] - a[1]).slice(0, 8);
+            
+            const ctxShare = document.getElementById('marketShareChart').getContext('2d');
+            if (charts.share) charts.share.destroy();
+            charts.share = new Chart(ctxShare, {
+                type: 'pie',
+                data: {
+                    labels: shareData.map(x => x[0].replace(/_/g, ' ')),
+                    datasets: [{
+                        data: shareData.map(x => x[1]),
+                        backgroundColor: ['#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#06b6d4', '#6366f1'],
+                        borderWidth: 1, borderColor: '#0f172a'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 10 } } } } }
+            });
+
+            // Pricing Distribution Chart
+            const modelStats = {};
+            filteredData.forEach(d => {
+                modelStats[d.pricingModel] = (modelStats[d.pricingModel] || 0) + 1;
+            });
+            const ctxDist = document.getElementById('pricingDistChart').getContext('2d');
+            if (charts.dist) charts.dist.destroy();
+            charts.dist = new Chart(ctxDist, {
+                type: 'polarArea',
+                data: {
+                    labels: Object.keys(modelStats).map(m => m.replace(/_/g, ' ')),
+                    datasets: [{
+                        data: Object.values(modelStats),
+                        backgroundColor: ['rgba(59, 130, 246, 0.5)', 'rgba(139, 92, 246, 0.5)', 'rgba(16, 185, 129, 0.5)', 'rgba(71, 85, 105, 0.5)'],
+                        borderColor: '#1e293b'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { r: { grid: { color: '#1e293b' }, ticks: { display: false } } }, plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 10 } } } } }
+            });
+        }
+
+        function renderLeaderboard() {
+            const devMap = {};
+            filteredData.forEach(item => {
+                const user = item.username;
+                if (!devMap[user]) {
+                    devMap[user] = { 
+                        username: user, 
+                        fullName: item.userFullName || user, 
+                        revenue: 0, profit: 0, actors: 0, 
+                        ratings: 0, ratingCount: 0,
+                        pic: item.pictureUrl
+                    };
+                }
+                devMap[user].revenue += item.estimated_revenue;
+                devMap[user].profit += item.estimated_profit;
+                devMap[user].actors += 1;
+                if (item.rating > 0) {
+                    devMap[user].ratings += item.rating;
+                    devMap[user].ratingCount += 1;
+                }
+            });
+
+            const sortedDevs = Object.values(devMap).sort((a,b) => b.revenue - a.revenue).slice(0, 100);
+            const list = document.getElementById('leaderboardList');
+            list.innerHTML = '';
+            
+            sortedDevs.forEach((dev, i) => {
+                const avgRating = dev.ratingCount > 0 ? (dev.ratings / dev.ratingCount).toFixed(1) : '0.0';
+                const div = document.createElement('div');
+                div.className = 'grid grid-cols-12 gap-4 p-4 bg-slate-800/40 rounded transition border border-slate-800 items-center';
+                div.innerHTML = `
+                    <div class="col-span-1 font-mono text-slate-500 text-sm">#${i+1}</div>
+                    <div class="col-span-3 flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-slate-700 overflow-hidden border border-slate-600">
+                             <img src="${dev.pic}" class="w-full h-full object-cover">
+                        </div>
+                        <div>
+                            <div class="text-sm font-bold text-white leading-none">${dev.fullName}</div>
+                            <div class="text-[10px] text-blue-400 mt-1 font-mono">@${dev.username}</div>
+                        </div>
+                    </div>
+                    <div class="col-span-2 text-right font-mono text-sm text-slate-200 font-bold">${formatCurrency(dev.revenue)}</div>
+                    <div class="col-span-2 text-right font-mono text-sm text-green-400 font-bold">${formatCurrency(dev.profit)}</div>
+                    <div class="col-span-2 text-center text-sm text-slate-400">${dev.actors} actors</div>
+                    <div class="col-span-2 text-right text-sm">
+                        <span class="text-yellow-500">★</span> ${avgRating}
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
         function showDetails(item) {
             const modal = document.getElementById('detailsModal');
             const content = document.getElementById('modalContent');
             const stats = item.stats || {};
+            const pricing = item.currentPricingInfo || {};
             
-            // Extract original fields that aren't specific calculated ones
             const calculatedFields = ['runs_30d', 'users_7d', 'users_30d', 'users_90d', 'growth_rate', 'estimated_revenue', 'estimated_profit', 'rating', 'reviews', 'priceSummary'];
             const rawInfo = {};
             Object.keys(item).forEach(key => {
                 if (!calculatedFields.includes(key)) rawInfo[key] = item[key];
             });
 
+            // Modal Tab Switcher Logic (Local to this render)
+            window.switchModalTab = (tab) => {
+                document.querySelectorAll('.modal-tab-btn').forEach(b => b.classList.remove('active', 'border-blue-500', 'text-blue-400'));
+                document.querySelectorAll('.modal-tab-btn').forEach(b => {
+                    if(b.textContent.toLowerCase().includes(tab)) b.classList.add('active', 'border-blue-500', 'text-blue-400');
+                });
+                document.querySelectorAll('.modal-tab-content').forEach(c => c.classList.add('hidden'));
+                document.getElementById(`modal-tab-${tab}`).classList.remove('hidden');
+            };
+
             content.innerHTML = `
-                <div class="flex gap-4 mb-4">
-                    <img src="${item.pictureUrl}" class="w-16 h-16 rounded-xl bg-slate-800 border border-slate-700">
-                    <div class="overflow-hidden">
-                        <h2 class="text-xl font-bold truncate">${item.title}</h2>
-                        <div class="flex items-center gap-2 mt-1">
-                            <a href="https://apify.com/${item.username}/${item.name}" target="_blank" class="text-blue-400 hover:underline text-sm font-mono">@${item.username}/${item.name}</a>
-                            <span class="text-[10px] bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded border border-amber-500/30 font-bold uppercase">${item.priceSummary}</span>
+                <!-- Modal Header -->
+                <div class="flex gap-4 mb-6">
+                    <img src="${item.pictureUrl}" class="w-20 h-20 rounded-2xl bg-slate-800 border-2 border-slate-700 shadow-xl shadow-blue-500/10">
+                    <div class="overflow-hidden flex-1">
+                        <div class="flex justify-between items-start">
+                            <h2 class="text-2xl font-black text-white tracking-tight truncate">${item.title}</h2>
                         </div>
-                        <div class="flex gap-2 mt-2 flex-wrap">
-                            ${(item.categories || []).map(c => `<span class="bg-slate-800 px-2 py-0.5 rounded text-[10px] text-slate-400 border border-slate-700">${c}</span>`).join('')}
+                        <div class="flex items-center gap-3 mt-1.5">
+                            <a href="https://apify.com/${item.username}/${item.name}" target="_blank" class="text-blue-400 hover:text-blue-300 transition-colors text-sm font-mono flex items-center gap-1">
+                                @${item.username}/${item.name}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                            </a>
+                            <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 font-bold uppercase tracking-wider">${item.pricingModel.replace(/_/g, ' ')}</span>
+                        </div>
+                        <div class="flex gap-2 mt-3 flex-wrap">
+                            ${(item.categories || []).map(c => `<span class="bg-blue-500/10 px-2.5 py-1 rounded-full text-[10px] text-blue-400 border border-blue-500/20 font-bold uppercase">${c.replace(/_/g, ' ')}</span>`).join('')}
                         </div>
                     </div>
                 </div>
-                
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="bg-slate-800/80 p-3 rounded-lg text-center border border-slate-700">
-                        <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Estimated Monthly Profit</div>
-                        <div class="text-2xl font-bold text-green-400">${formatCurrency(item.estimated_profit)}</div>
-                        <div class="text-xs text-slate-500">Gross Rev: ${formatCurrency(item.estimated_revenue)}</div>
+
+                <!-- Tabs Navigation -->
+                <div class="flex border-b border-slate-800 mb-6 gap-6">
+                    <button onclick="switchModalTab('overview')" class="modal-tab-btn active border-b-2 border-blue-500 text-blue-400 pb-2 text-sm font-bold transition-all px-1">Overview</button>
+                    <button onclick="switchModalTab('pricing')" class="modal-tab-btn pb-2 text-sm font-bold text-slate-500 hover:text-slate-300 transition-all px-1">Pricing Detail</button>
+                    <button onclick="switchModalTab('about')" class="modal-tab-btn pb-2 text-sm font-bold text-slate-500 hover:text-slate-300 transition-all px-1">Description</button>
+                </div>
+
+                <!-- Tab: Overview -->
+                <div id="modal-tab-overview" class="modal-tab-content">
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 group hover:border-green-500/30 transition-colors">
+                            <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1.5 font-bold">Estimated Monthly Profit</div>
+                            <div class="text-3xl font-black text-green-400">${formatCurrency(item.estimated_profit)}</div>
+                            <div class="text-xs text-slate-500 mt-1 flex justify-between">
+                                <span>Gross Revenue</span>
+                                <span class="font-mono">${formatCurrency(item.estimated_revenue)}</span>
+                            </div>
+                        </div>
+                        <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 group hover:border-blue-500/30 transition-colors">
+                            <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1.5 font-bold">Growth Momentum (30d)</div>
+                            <div class="text-3xl font-black text-white">${item.growth_rate >= 0 ? '+' : ''}${item.growth_rate}%</div>
+                            <div class="text-xs text-slate-500 mt-1 flex justify-between">
+                                <span>Users per Day</span>
+                                <span class="font-mono">~${Math.round(item.users_7d / 7)}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="bg-slate-800/80 p-3 rounded-lg text-center border border-slate-700">
-                        <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Growth Speed (30d)</div>
-                        <div class="text-2xl font-bold text-white">${item.growth_rate >= 0 ? '+' : ''}${item.growth_rate}%</div>
-                        <div class="text-xs text-slate-500">Velocity: ~${Math.round(item.users_7d / 7)} users/day</div>
+
+                    <div class="grid grid-cols-4 gap-3 mb-6">
+                        <div class="bg-slate-900/40 p-3 rounded-lg border border-slate-800 text-center">
+                            <div class="text-[9px] text-slate-500 uppercase font-black mb-1">1 Week</div>
+                            <div class="text-lg font-bold text-slate-300">${(item.users_7d || 0).toLocaleString()}</div>
+                        </div>
+                        <div class="bg-slate-900/40 p-3 rounded-lg border border-slate-800 text-center">
+                            <div class="text-[9px] text-slate-500 uppercase font-black mb-1">1 Month</div>
+                            <div class="text-lg font-bold text-white">${(item.users_30d || 0).toLocaleString()}</div>
+                        </div>
+                        <div class="bg-slate-900/40 p-3 rounded-lg border border-slate-800 text-center">
+                            <div class="text-[9px] text-slate-500 uppercase font-black mb-1">3 Months</div>
+                            <div class="text-lg font-bold text-slate-300">${(item.users_90d || 0).toLocaleString()}</div>
+                        </div>
+                        <div class="bg-slate-900/40 p-3 rounded-lg border border-blue-500/10 text-center bg-blue-500/5">
+                            <div class="text-[9px] text-blue-500 uppercase font-black mb-1">Total Users</div>
+                            <div class="text-lg font-bold text-blue-400">${(stats.totalUsers || 0).toLocaleString()}</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-slate-800/20 border border-slate-800">
+                            <span class="text-sm text-slate-400">Customer Satisfaction</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-yellow-500 font-bold">★ ${item.rating.toFixed(2)}</span>
+                                <span class="text-xs text-slate-500">(${item.reviews} reviews)</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-slate-800/20 border border-slate-800">
+                            <span class="text-sm text-slate-400">Total Run Volume (30d)</span>
+                            <span class="text-sm font-bold text-white font-mono">${(stats.publicActorRunStats30Days?.TOTAL || 0).toLocaleString()} runs</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-4 gap-2 mb-6">
-                    <div class="bg-slate-900/50 p-2 rounded border border-slate-800 text-center">
-                        <div class="text-[9px] text-slate-500 uppercase">1 Week</div>
-                        <div class="text-sm font-bold text-slate-300">${(item.users_7d || 0).toLocaleString()}</div>
-                    </div>
-                    <div class="bg-slate-900/50 p-2 rounded border border-slate-800 text-center">
-                        <div class="text-[9px] text-slate-500 uppercase">1 Month</div>
-                        <div class="text-sm font-bold text-white">${(item.users_30d || 0).toLocaleString()}</div>
-                    </div>
-                    <div class="bg-slate-900/50 p-2 rounded border border-slate-800 text-center">
-                        <div class="text-[9px] text-slate-500 uppercase">3 Months</div>
-                        <div class="text-sm font-bold text-slate-300">${(item.users_90d || 0).toLocaleString()}</div>
-                    </div>
-                    <div class="bg-slate-900/50 p-2 rounded border border-slate-800 text-center">
-                        <div class="text-[9px] text-blue-500 uppercase font-bold">Total Users</div>
-                        <div class="text-sm font-bold text-blue-400">${(stats.totalUsers || 0).toLocaleString()}</div>
+                <!-- Tab: Pricing -->
+                <div id="modal-tab-pricing" class="modal-tab-content hidden animate-in fade-in slide-in-from-bottom-2">
+                    <div class="bg-slate-800/30 rounded-xl border border-slate-700 overflow-hidden">
+                        <div class="p-4 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center">
+                            <h3 class="font-bold text-white">Current Pricing Model</h3>
+                            <span class="text-xs font-mono bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded border border-blue-500/30">${item.pricingModel}</span>
+                        </div>
+                        
+                        <div class="p-4 space-y-4">
+                            ${item.pricingModel === 'FREE' ? `
+                                <div class="text-center py-8">
+                                    <div class="text-4xl mb-2 text-slate-600">🎁</div>
+                                    <p class="text-slate-400 font-medium">This actor is completely free to use.</p>
+                                </div>
+                            ` : `
+                                ${pricing.pricingPerEvent ? `
+                                    <div class="space-y-3">
+                                        <p class="text-xs text-slate-500 uppercase font-bold tracking-widest mb-2">Event Pricing Breakdown</p>
+                                        ${Object.entries(pricing.pricingPerEvent.actorChargeEvents || {}).map(([key, ev]) => `
+                                            <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                                                <div class="flex justify-between items-start mb-1">
+                                                    <span class="font-bold text-slate-200">${ev.eventTitle || key}</span>
+                                                    <span class="text-sm font-black text-green-400">$${(ev.eventTieredPricingUsd?.FREE?.tieredEventPriceUsd || 0).toFixed(4)}</span>
+                                                </div>
+                                                <p class="text-[10px] text-slate-500 leading-tight">${ev.eventDescription || ''}</p>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : `
+                                    <div class="flex justify-between items-center p-4 bg-slate-900/50 rounded-lg">
+                                        <span class="text-slate-300">Monthly Subscription Price</span>
+                                        <span class="text-xl font-black text-green-400">$${(pricing.pricePerUnitUsd || 0).toFixed(2)} / mo</span>
+                                    </div>
+                                `}
+                            `}
+                        </div>
                     </div>
                 </div>
 
-                <div class="space-y-2 text-sm text-slate-300 bg-slate-800/20 p-4 rounded-lg border border-slate-700 mb-4">
-                    <div class="flex justify-between border-b border-slate-700/50 pb-2">
-                        <span class="text-slate-500">Pricing Model</span>
-                        <span class="font-bold text-slate-200">${item.pricingModel.replace(/_/g, ' ')}</span>
-                    </div>
-                    <div class="flex justify-between border-b border-slate-700/50 pb-2 pt-2">
-                        <span class="text-slate-500">Total Runs (30d)</span>
-                        <span class="font-bold text-slate-200 font-mono">${(stats.publicActorRunStats30Days?.TOTAL || 0).toLocaleString()}</span>
-                    </div>
-                    <div class="flex justify-between border-b border-slate-700/50 pb-2 pt-2">
-                        <span class="text-slate-500">User Rating</span>
-                        <span class="font-bold text-yellow-500">★ ${item.rating.toFixed(2)} (${item.reviews} reviews)</span>
-                    </div>
-                    <div class="flex justify-between pt-2">
-                        <span class="text-slate-500">Lifetime Runs</span>
-                        <span class="font-bold text-slate-200 font-mono">${(stats.totalRuns || 0).toLocaleString()}</span>
+                <!-- Tab: About -->
+                <div id="modal-tab-about" class="modal-tab-content hidden">
+                    <div class="bg-slate-800/30 rounded-xl border border-slate-700 p-5">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Project Summary</h3>
+                        <p class="text-slate-300 text-sm leading-relaxed mb-6 italic border-l-2 border-blue-500 pl-4 bg-blue-500/5 py-2">
+                            "${item.description || 'No description available'}"
+                        </p>
+                        
+                        ${item.readmeSummary ? `
+                            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Highlights & Use Cases</h3>
+                            <div class="text-sm text-slate-400 prose prose-invert max-w-none">
+                                ${item.readmeSummary.split('\n').filter(l => l.startsWith('-') || l.startsWith('*')).map(l => `
+                                    <div class="flex gap-2 mb-1.5">
+                                        <span class="text-blue-500">•</span>
+                                        <span>${l.substring(1).trim()}</span>
+                                    </div>
+                                `).join('') || item.readmeSummary.substring(0, 500) + '...'}
+                            </div>
+                        ` : ''}
+
+                        <details class="mt-8 group">
+                            <summary class="text-[10px] font-bold text-slate-600 uppercase tracking-widest cursor-pointer hover:text-slate-400 transition py-2 border-t border-slate-800/50 flex items-center justify-between">
+                                <span>Advanced Technical Data</span>
+                                <span class="group-open:rotate-180 transition-transform">▼</span>
+                            </summary>
+                            <pre class="text-[9px] font-mono text-slate-500 bg-black/40 p-4 rounded mt-4 max-h-60 overflow-auto border border-slate-800/50 leading-tight">
+${JSON.stringify(rawInfo, null, 2)}
+                            </pre>
+                        </details>
                     </div>
                 </div>
-
-                <details class="group">
-                    <summary class="text-xs font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-white transition py-2 border-t border-slate-800 flex items-center justify-between">
-                        <span>Original Data (Plan & Pricing)</span>
-                        <span class="text-[10px] group-open:rotate-180 transition-transform">▼</span>
-                    </summary>
-                    <pre class="text-[10px] font-mono text-slate-400 bg-black/60 p-4 rounded mt-2 overflow-auto max-h-60 leading-tight border border-slate-800 select-all">${JSON.stringify(rawInfo, null, 2)}</pre>
-                </details>
             `;
             modal.showModal();
         }

@@ -45,15 +45,17 @@ def calculate_revenue_profit(actor):
         if "pricingPerEvent" in pricing:
             events = pricing["pricingPerEvent"].get("actorChargeEvents", {})
             
-            # Base start price
+            # Base start price (handle multiple names like actor-start or apify-actor-start)
             start_price = 0
-            if "actor-start" in events:
-                start_price = get_tiered_price(events["actor-start"].get("eventTieredPricingUsd", {}))
+            for start_key in ["actor-start", "apify-actor-start"]:
+                if start_key in events:
+                    start_price = get_tiered_price(events[start_key].get("eventTieredPricingUsd", {}))
+                    break
             
-            # Recurring event price (max of recurring events)
+            # Recurring event price (max of recurring events like result-item or result)
             result_price = 0
             for key, event in events.items():
-                if key != "actor-start" and not event.get("isOneTimeEvent", False):
+                if key not in ["actor-start", "apify-actor-start"] and not event.get("isOneTimeEvent", False):
                     p = get_tiered_price(event.get("eventTieredPricingUsd", {}))
                     if p > result_price:
                         result_price = p
@@ -120,8 +122,14 @@ def main():
         model = pricing.get("pricingModel", "FREE")
         if model == "PAY_PER_EVENT":
             events = pricing.get("pricingPerEvent", {}).get("actorChargeEvents", {})
-            if "actor-start" in events:
-                p = get_tiered_price(events["actor-start"].get("eventTieredPricingUsd", {}))
+            start_key = None
+            for sk in ["actor-start", "apify-actor-start"]:
+                if sk in events:
+                    start_key = sk
+                    break
+            
+            if start_key:
+                p = get_tiered_price(events[start_key].get("eventTieredPricingUsd", {}))
                 price_summary = f"${p}/start"
             elif events:
                 # Get first recurring event price
