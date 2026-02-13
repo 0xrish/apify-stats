@@ -39,7 +39,7 @@ for /f "delims=" %%i in ('powershell -command "(Select-String -Path 'data.js' -P
 set /a count=%count% 2>nul
 echo [INFO] Detected %count% actors in processed data.
 
-if %count% LSS 1500 (
+if %count% LSS 15000 (
     echo [ERROR] Data count %count% is below the 15,000 threshold.
     echo [ERROR] This usually means the fetch was incomplete. Aborting push.
     exit /b 1
