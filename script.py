@@ -141,11 +141,16 @@ def main():
         elif model == "PRICE_PER_DATASET_ITEM":
             price_summary = f"${pricing.get('pricePerUnitUsd', 0)}/item"
 
-        # Start with all original fields
-        item = actor.copy()
-        
-        # Inject our calculated metrics and flattened metadata
-        item.update({
+        # Create a slim version for the UI to handle 20k+ entries smoothly
+        item = {
+            "id": actor.get("id"),
+            "name": actor.get("name"),
+            "username": actor.get("username"),
+            "title": actor.get("title"),
+            "description": (actor.get("description") or "")[:200], # Truncate long descriptions
+            "categories": actor.get("categories", []),
+            "pictureUrl": actor.get("pictureUrl"),
+            "url": actor.get("url"),
             "pricingModel": model,
             "priceSummary": price_summary,
             "userFullName": actor.get("userFullName", "Unknown"),
@@ -164,7 +169,7 @@ def main():
             # Social shortcuts
             "rating": stats.get("actorReviewRating", 0),
             "reviews": stats.get("actorReviewCount", 0)
-        })
+        }
         
         processed_data.append(item)
 
