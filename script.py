@@ -1,6 +1,10 @@
 import json
 import sys
 from datetime import datetime
+import os
+import psycopg2
+from psycopg2.extras import execute_values
+from dotenv import load_dotenv
 
 # =========================
 # CONFIG
@@ -100,6 +104,154 @@ def calculate_growth(stats):
         "growth_rate": round(rate, 1)
     }
 
+def get_db_connection():
+    # Load environment variables
+    load_dotenv()
+    
+    db_host = os.getenv("DB_HOST", "localhost")
+    db_port = os.getenv("DB_PORT", "5432")
+    db_user = os.getenv("DB_USER", "postgres")
+    db_password = os.getenv("DB_PASSWORD", "@Rishi21")
+    db_name = os.getenv("DB_NAME", "apify_stats")
+
+    # Connect to default database first to ensure db_name exists
+    try:
+        conn = psycopg2.connect(
+            host=db_host,
+            port=db_port,
+            user=db_user,
+            password=db_password,
+            database="postgres"
+        )
+        conn.autocommit = True
+        cur = conn.cursor()
+        
+        # Check if database exists
+        cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db_name,))
+        exists = cur.fetchone()
+        if not exists:
+            print(f"Database '{db_name}' does not exist. Creating...")
+            cur.execute(f"CREATE DATABASE {db_name}")
+            print(f"Database '{db_name}' created successfully.")
+        
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error checking/creating database '{db_name}': {e}")
+
+    # Connect to the target database
+    conn = psycopg2.connect(
+        host=db_host,
+        port=db_port,
+        user=db_user,
+        password=db_password,
+        database=db_name
+    )
+    return conn
+
+def init_db(conn):
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS actors (
+            id VARCHAR(255) PRIMARY KEY,
+            name VARCHAR(255),
+            username VARCHAR(255),
+            title VARCHAR(255),
+            description TEXT,
+            categories TEXT[],
+            picture_url TEXT,
+            url TEXT,
+            pricing_model VARCHAR(100),
+            price_summary VARCHAR(100),
+            user_full_name VARCHAR(255),
+            runs_30d INTEGER,
+            users_7d INTEGER,
+            users_30d INTEGER,
+            users_90d INTEGER,
+            growth_rate DOUBLE PRECISION,
+            estimated_revenue DOUBLE PRECISION,
+            estimated_profit DOUBLE PRECISION,
+            rating DOUBLE PRECISION,
+            reviews INTEGER,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    conn.commit()
+    cur.close()
+
+def save_to_postgres(processed_data):
+    try:
+        conn = get_db_connection()
+        init_db(conn)
+        
+        cur = conn.cursor()
+        
+        # Prepare list of values for execution
+        values = []
+        for item in processed_data:
+            values.append((
+                item.get("id"),
+                item.get("name"),
+                item.get("username"),
+                item.get("title"),
+                item.get("description"),
+                item.get("categories"),
+                item.get("pictureUrl"),
+                item.get("url"),
+                item.get("pricingModel"),
+                item.get("priceSummary"),
+                item.get("userFullName"),
+                item.get("runs_30d"),
+                item.get("users_7d"),
+                item.get("users_30d"),
+                item.get("users_90d"),
+                item.get("growth_rate"),
+                item.get("estimated_revenue"),
+                item.get("estimated_profit"),
+                item.get("rating"),
+                item.get("reviews")
+            ))
+        
+        insert_query = """
+            INSERT INTO actors (
+                id, name, username, title, description, categories, picture_url, url,
+                pricing_model, price_summary, user_full_name, runs_30d, users_7d,
+                users_30d, users_90d, growth_rate, estimated_revenue, estimated_profit,
+                rating, reviews
+            ) VALUES %s
+            ON CONFLICT (id) DO UPDATE SET
+                name = EXCLUDED.name,
+                username = EXCLUDED.username,
+                title = EXCLUDED.title,
+                description = EXCLUDED.description,
+                categories = EXCLUDED.categories,
+                picture_url = EXCLUDED.picture_url,
+                url = EXCLUDED.url,
+                pricing_model = EXCLUDED.pricing_model,
+                price_summary = EXCLUDED.price_summary,
+                user_full_name = EXCLUDED.user_full_name,
+                runs_30d = EXCLUDED.runs_30d,
+                users_7d = EXCLUDED.users_7d,
+                users_30d = EXCLUDED.users_30d,
+                users_90d = EXCLUDED.users_90d,
+                growth_rate = EXCLUDED.growth_rate,
+                estimated_revenue = EXCLUDED.estimated_revenue,
+                estimated_profit = EXCLUDED.estimated_profit,
+                rating = EXCLUDED.rating,
+                reviews = EXCLUDED.reviews,
+                updated_at = CURRENT_TIMESTAMP;
+        """
+        
+        print("Upserting actors into PostgreSQL...")
+        execute_values(cur, insert_query, values)
+        conn.commit()
+        print(f"Successfully upserted {len(processed_data)} actors to PostgreSQL.")
+        
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error saving to PostgreSQL: {e}")
+
 def main():
     try:
         with open(INPUT_FILE, "r", encoding="utf-8") as f:
@@ -176,9 +328,9 @@ def main():
     # =========================
     # NORMALIZATION
     # =========================
-    # User Intel: Apify pays ~$500k/month total profit to developers.
+    # User Intel: Apify pays ~$1M/month total profit to developers.
     
-    TARGET_TOTAL_PROFIT = 500000.0
+    TARGET_TOTAL_PROFIT = 1000000.0
     
     total_raw_profit = sum(item["estimated_profit"] for item in processed_data)
     
@@ -203,9 +355,8 @@ def main():
     # =========================
 
     with open("report.md", "w", encoding="utf-8") as f:
-        # 1. Top Revenue
         f.write("-" * 60 + "\n")
-        f.write("TOP 10 REVENUE GENERATORS (Calibrated to ~$500k Mkt Cap)\n")
+        f.write("TOP 10 REVENUE GENERATORS (Calibrated to ~$1M Mkt Cap)\n")
         f.write("-" * 60 + "\n")
         f.write(f"{'Name':<40} | {'Revenue':<12} | {'Profit':<12} | {'Users':<8}\n")
         
@@ -271,6 +422,9 @@ def main():
     
     print(f"Successfully processed {len(processed_data)} actors.")
     print(f"Data saved to {OUTPUT_JS_FILE}")
+    
+    # Save to PostgreSQL database
+    save_to_postgres(processed_data)
 
 if __name__ == "__main__":
     main()
