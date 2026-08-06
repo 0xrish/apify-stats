@@ -2,57 +2,57 @@
 TOP 10 REVENUE GENERATORS (Calibrated to ~$1M Mkt Cap)
 ------------------------------------------------------------
 Name                                     | Revenue      | Profit       | Users   
-Google Search Results Scraper            | $451,351.95  | $436,455.85  | 14196   
-TikTok Scraper                           | $161,014.10  | $155,700.11  | 19387   
-Google Maps Scraper                      | $108,945.77  | $105,350.20  | 35514   
-TikTok Data Extractor                    | $36,435.31   | $35,232.83   | 2915    
-Instagram Reel Scraper                   | $31,278.25   | $30,245.96   | 10361   
-TikTok Profile Scraper                   | $25,716.81   | $24,868.07   | 4870    
-Twitter (X.com) Scraper Unlimited: No    | $22,143.94   | $21,413.12   | 2110    
-Instagram Profile Scraper                | $19,047.02   | $18,418.41   | 23440   
-LinkedIn Profile Search Scraper No Coo   | $16,101.99   | $15,570.57   | 5301    
-Instagram Scraper                        | $13,601.92   | $13,153.01   | 37844   
+Google Search Results Scraper            | $453,077.50  | $438,124.45  | 14362   
+TikTok Scraper                           | $160,343.46  | $155,051.60  | 19668   
+Google Maps Scraper                      | $104,577.58  | $101,126.18  | 36072   
+TikTok Data Extractor                    | $38,654.66   | $37,378.93   | 2921    
+Instagram Reel Scraper                   | $30,962.29   | $29,940.43   | 10545   
+TikTok Profile Scraper                   | $25,395.49   | $24,557.36   | 4950    
+Twitter (X.com) Scraper Unlimited: No    | $22,031.94   | $21,304.82   | 2133    
+Instagram Profile Scraper                | $19,089.33   | $18,459.32   | 23767   
+LinkedIn Profile Search Scraper No Coo   | $16,001.96   | $15,473.85   | 5384    
+Google Maps Extractor                    | $13,868.87   | $13,411.15   | 3867    
 
 ------------------------------------------------------------
 TOP 10 FASTEST GROWING (Users Last 7 Days)
 ------------------------------------------------------------
 Name                                     | Users (7d)   | Growth %   | Est Profit
-Instagram Scraper                        | 19032        | 177.9    % | $13153
-Google Maps Scraper                      | 12214        | 89.8     % | $105350
-Instagram Profile Scraper                | 11513        | 178.0    % | $18418
-RAG Web Browser                          | 10212        | 76.5     % | $0
-TikTok Scraper                           | 9003         | 155.1    % | $155700
-Google Search Results Scraper            | 6049         | 128.6    % | $436456
-Facebook Posts Scraper                   | 5577         | 145.5    % | $5571
-Instagram Post Scraper                   | 5214         | 141.5    % | $2520
-YouTube Scraper                          | 4336         | 139.2    % | $9401
-LinkedIn Profile Scraper + Email ✅ No    | 4291         | 83.2     % | $0
+Instagram Scraper                        | 19487        | 182.1    % | $13118
+Google Maps Scraper                      | 12587        | 93.7     % | $101126
+Instagram Profile Scraper                | 10754        | 180.2    % | $18459
+RAG Web Browser                          | 10319        | 78.4     % | $0
+TikTok Scraper                           | 9196         | 158.2    % | $155052
+Google Search Results Scraper            | 6223         | 131.1    % | $438124
+Facebook Posts Scraper                   | 5673         | 149.7    % | $5594
+Instagram Post Scraper                   | 5266         | 144.7    % | $2561
+LinkedIn Profile Scraper + Email ✅ No    | 4945         | 101.3    % | $0
+YouTube Scraper                          | 4320         | 144.6    % | $9960
 
 ------------------------------------------------------------
 HIGH DEMAND / LOW REVENUE (Opportunities)
 ------------------------------------------------------------
-RAG Web Browser                          | Users: 27917  | Profit: $0.00
-LinkedIn Jobs Scraper | Remove Duplicate | Users: 10751  | Profit: $26.65
-LinkedIn Profile Scraper + Email ✅ No Co | Users: 9719   | Profit: $0.00
-Linkedin Jobs Scraper                    | Users: 9513   | Profit: $0.00
-Website Content Crawler                  | Users: 8745   | Profit: $0.00
-Facebook Ad Library Scraper              | Users: 5266   | Profit: $0.00
-Profile Details Scraper for LinkedIn + E | Users: 4190   | Profit: $0.00
-🏆 LinkedIn Jobs Scraper                  | Users: 3938   | Profit: $24.87
-💡 Indeed Jobs Scraper                    | Users: 3356   | Profit: $5.76
-Email Verifier by Million Verifier - $1/ | Users: 3140   | Profit: $0.00
+RAG Web Browser                          | Users: 28227  | Profit: $0.00
+LinkedIn Jobs Scraper | Remove Duplicate | Users: 11094  | Profit: $26.71
+LinkedIn Profile Scraper + Email ✅ No Co | Users: 10640  | Profit: $0.00
+Linkedin Jobs Scraper                    | Users: 9431   | Profit: $0.00
+Website Content Crawler                  | Users: 9020   | Profit: $0.00
+Facebook Ad Library Scraper              | Users: 5373   | Profit: $0.00
+Profile Details Scraper for LinkedIn + E | Users: 4262   | Profit: $0.00
+🏆 LinkedIn Jobs Scraper                  | Users: 4166   | Profit: $24.88
+💡 Indeed Jobs Scraper                    | Users: 3414   | Profit: $5.95
+Email Verifier by Million Verifier - $1/ | Users: 3161   | Profit: $0.00
 
 ------------------------------------------------------------
 CATEGORY ANALYSIS (Niche Finding)
 ------------------------------------------------------------
 Category                  | Avg Profit | Avg Users  | Count     
-SEO_TOOLS                 | $127       | 11         | 3465      
-VIDEOS                    | $89        | 30         | 3032      
-TRAVEL                    | $63        | 28         | 2021      
-AI                        | $57        | 12         | 7788      
-SOCIAL_MEDIA              | $39        | 38         | 10534     
-LEAD_GENERATION           | $35        | 17         | 19153     
-NEWS                      | $5         | 6          | 3020      
-BUSINESS                  | $3         | 2          | 4711      
-AUTOMATION                | $3         | 8          | 26745     
-MCP_SERVERS               | $2         | 9          | 1597      
+SEO_TOOLS                 | $126       | 11         | 3512      
+VIDEOS                    | $89        | 31         | 3052      
+TRAVEL                    | $61        | 28         | 2047      
+AI                        | $56        | 12         | 7862      
+SOCIAL_MEDIA              | $38        | 38         | 10645     
+LEAD_GENERATION           | $34        | 17         | 19306     
+NEWS                      | $5         | 6          | 3067      
+BUSINESS                  | $3         | 2          | 4434      
+AUTOMATION                | $2         | 8          | 27024     
+MCP_SERVERS               | $2         | 9          | 1648      
